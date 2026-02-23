@@ -805,25 +805,30 @@
             formData.append('force_all', document.getElementById('force-all').checked ? 'true' : 'false');
             
             try {
+                console.log('Sending evaluation request...');
                 const response = await fetch('/api/evaluate', { method: 'POST', body: formData });
+                console.log('Response received, status:', response.status);
                 const data = await response.json();
+                console.log('Data parsed, metrics count:', data.metrics ? data.metrics.length : 0);
                 
                 if (data.error) {
                     showError('evaluate-error', data.error);
                 } else {
-                    try {
-                        displayEvaluateResults(data);
-                    } catch (displayErr) {
-                        console.error('Display error:', displayErr);
-                        showError('evaluate-error', 'Error displaying results: ' + displayErr.message);
-                    }
+                    displayEvaluateResults(data);
                 }
             } catch (err) {
-                console.error('Request error:', err);
-                showError('evaluate-error', 'Request failed: ' + err.message);
+                console.error('Request/display error:', err);
+                showError('evaluate-error', 'Error: ' + err.message);
             } finally {
-                // Always hide progress and reset button
+                // ALWAYS hide progress and reset button
+                console.log('Finally block - hiding progress');
                 progress.hide();
+                // Also force hide with direct DOM manipulation
+                var progressEl = document.getElementById('evaluate-progress');
+                if (progressEl) {
+                    progressEl.style.display = 'none';
+                    progressEl.classList.remove('show');
+                }
                 btn.disabled = false;
                 btnText.textContent = 'Evaluate Clustering';
             }
@@ -860,25 +865,29 @@
             formData.append('exclude', document.getElementById('compare-exclude').value);
             
             try {
+                console.log('Sending compare request...');
                 const response = await fetch('/api/compare', { method: 'POST', body: formData });
+                console.log('Compare response received, status:', response.status);
                 const data = await response.json();
+                console.log('Compare data parsed');
                 
                 if (data.error) {
                     showError('compare-error', data.error);
                 } else {
-                    try {
-                        displayCompareResults(data);
-                    } catch (displayErr) {
-                        console.error('Display error:', displayErr);
-                        showError('compare-error', 'Error displaying results: ' + displayErr.message);
-                    }
+                    displayCompareResults(data);
                 }
             } catch (err) {
-                console.error('Request error:', err);
-                showError('compare-error', 'Request failed: ' + err.message);
+                console.error('Compare error:', err);
+                showError('compare-error', 'Error: ' + err.message);
             } finally {
-                // Always hide progress and reset button
+                // ALWAYS hide progress and reset button
+                console.log('Compare finally - hiding progress');
                 progress.hide();
+                var progressEl = document.getElementById('compare-progress');
+                if (progressEl) {
+                    progressEl.style.display = 'none';
+                    progressEl.classList.remove('show');
+                }
                 btn.disabled = false;
                 btnText.textContent = 'Compare Clusterings';
             }
@@ -926,7 +935,15 @@
             
             // Metrics table
             const tbody = document.getElementById('evaluate-metrics');
-            tbody.innerHTML = data.metrics.map(m => `
+            tbody.innerHTML = data.metrics.map(m => {
+                // Convert tier string to CSS class number
+                let tierClass = '1';
+                if (m.tier) {
+                    if (m.tier === 'Tier 1' || m.tier === 'Original') tierClass = '1';
+                    else if (m.tier === 'Tier 2') tierClass = '2';
+                    else if (m.tier === 'Tier 3') tierClass = '3';
+                }
+                return `
                 <tr${m.skipped ? ' class="skipped"' : ''}>
                     <td>${m.name}</td>
                     <td class="metric-value">${m.skipped ? (m.skip_reason || 'Skipped') : formatValue(m.value)}</td>
@@ -934,11 +951,12 @@
                     <td class="${m.direction === 'Higher is better' ? 'direction-up' : 'direction-down'}">
                         ${m.direction === 'Higher is better' ? '↑' : '↓'} ${m.direction || '-'}
                     </td>
-                    <td><span class="tier-badge tier-${m.tier || 1}">Tier ${m.tier || '-'}</span></td>
-                </tr>
-            `).join('');
+                    <td><span class="tier-badge tier-${tierClass}">${m.tier || '-'}</span></td>
+                </tr>`;
+            }).join('');
             
             results.classList.add('show');
+            console.log('Results displayed successfully');
         }
         
         function displayCompareResults(data) {
