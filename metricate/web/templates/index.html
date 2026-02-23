@@ -70,6 +70,9 @@
             border-bottom: 3px solid transparent;
             margin-bottom: -2px;
             transition: all 0.2s;
+            pointer-events: auto;
+            position: relative;
+            z-index: 10;
         }
         
         .tab:hover {
@@ -454,8 +457,8 @@
         </header>
         
         <div class="tabs">
-            <button class="tab active" data-tab="evaluate" onclick="switchTab('evaluate')">Evaluate</button>
-            <button class="tab" data-tab="compare" onclick="switchTab('compare')">Compare</button>
+            <button type="button" class="tab active" id="tab-evaluate" data-tab="evaluate" onclick="switchTab('evaluate'); return false;">Evaluate</button>
+            <button type="button" class="tab" id="tab-compare" data-tab="compare" onclick="switchTab('compare'); return false;">Compare</button>
         </div>
         
         <!-- Evaluate Tab -->
@@ -751,15 +754,26 @@
             return {
                 complete: function() {
                     clearInterval(interval);
-                    updateStep(steps.length - 1, 100);
+                    // Mark all steps as done
+                    percent.textContent = '100%';
+                    bar.style.width = '100%';
+                    text.textContent = 'Complete!';
                     stepEls.forEach(el => {
                         el.classList.remove('active');
                         el.classList.add('done');
-                        el.innerHTML = '✓ ' + el.textContent.substring(2);
+                        const txt = el.textContent.replace(/^[⏳○✓]\s*/, '');
+                        el.innerHTML = '✓ ' + txt;
                     });
-                    setTimeout(() => container.classList.remove('show'), 500);
+                    // Hide after a short delay
+                    setTimeout(function() {
+                        container.classList.remove('show');
+                    }, 800);
                 },
                 error: function() {
+                    clearInterval(interval);
+                    container.classList.remove('show');
+                },
+                hide: function() {
                     clearInterval(interval);
                     container.classList.remove('show');
                 }
@@ -798,15 +812,22 @@
                 const response = await fetch('/api/evaluate', { method: 'POST', body: formData });
                 const data = await response.json();
                 
-                progress.complete();
+                // Hide progress first
+                progress.hide();
                 
                 if (data.error) {
                     showError('evaluate-error', data.error);
                 } else {
-                    displayEvaluateResults(data);
+                    try {
+                        displayEvaluateResults(data);
+                    } catch (displayErr) {
+                        console.error('Display error:', displayErr);
+                        showError('evaluate-error', 'Error displaying results: ' + displayErr.message);
+                    }
                 }
             } catch (err) {
-                progress.error();
+                progress.hide();
+                console.error('Request error:', err);
                 showError('evaluate-error', 'Request failed: ' + err.message);
             } finally {
                 btn.disabled = false;
@@ -848,15 +869,22 @@
                 const response = await fetch('/api/compare', { method: 'POST', body: formData });
                 const data = await response.json();
                 
-                progress.complete();
+                // Hide progress first
+                progress.hide();
                 
                 if (data.error) {
                     showError('compare-error', data.error);
                 } else {
-                    displayCompareResults(data);
+                    try {
+                        displayCompareResults(data);
+                    } catch (displayErr) {
+                        console.error('Display error:', displayErr);
+                        showError('compare-error', 'Error displaying results: ' + displayErr.message);
+                    }
                 }
             } catch (err) {
-                progress.error();
+                progress.hide();
+                console.error('Request error:', err);
                 showError('compare-error', 'Request failed: ' + err.message);
             } finally {
                 btn.disabled = false;
