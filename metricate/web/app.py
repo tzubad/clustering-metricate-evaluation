@@ -27,7 +27,7 @@ def create_app(debug: bool = False) -> Flask:
     """
     app = Flask(__name__, template_folder="templates", static_folder="static")
     app.config["DEBUG"] = debug
-    app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max upload
+    app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024 * 1024  # 1GB max upload
 
     @app.route("/")
     def index():
