@@ -778,98 +778,105 @@
         
         // Evaluate form submission
         async function submitEvaluate(e) {
-            e.preventDefault();
+            if (e) e.preventDefault();
             
             const btn = document.getElementById('evaluate-btn');
             const btnText = btn.querySelector('.btn-text');
+            const progressEl = document.getElementById('evaluate-progress');
+            const startTime = Date.now();
             
+            // Reset UI
             btn.disabled = true;
-            btnText.textContent = 'Evaluating...';
-            
-            // Hide previous results
+            btnText.textContent = 'Processing...';
             document.getElementById('evaluate-results').classList.remove('show');
             document.getElementById('evaluate-error').classList.add('hidden');
             
-            // Start progress animation
-            const progress = showProgress('evaluate', [
-                'Loading CSV data...',
-                'Validating columns...',
-                'Precomputing statistics...',
-                'Calculating 36 metrics...',
-                'Formatting results...'
-            ]);
+            // Show simple status
+            progressEl.style.display = 'block';
+            progressEl.innerHTML = '<div style="padding:1rem;background:#f0f9ff;border-radius:8px;"><strong>⏳ Evaluating...</strong><br><span id="eval-status">Sending request...</span></div>';
             
             const formData = new FormData();
-            formData.append('file', document.getElementById('evaluate-file').files[0]);
+            const fileInput = document.getElementById('evaluate-file');
+            if (!fileInput.files[0]) {
+                showError('evaluate-error', 'No file selected');
+                btn.disabled = false;
+                btnText.textContent = 'Evaluate Clustering';
+                progressEl.style.display = 'none';
+                return;
+            }
+            formData.append('file', fileInput.files[0]);
             formData.append('exclude', document.getElementById('exclude').value);
             formData.append('force_all', document.getElementById('force-all').checked ? 'true' : 'false');
             
             try {
-                console.log('Sending evaluation request...');
+                document.getElementById('eval-status').textContent = 'Uploading file (' + (fileInput.files[0].size/1024).toFixed(1) + ' KB)...';
+                
                 const response = await fetch('/api/evaluate', { method: 'POST', body: formData });
-                console.log('Response received, status:', response.status);
+                
+                document.getElementById('eval-status').textContent = 'Parsing response...';
                 const data = await response.json();
-                console.log('Data parsed, metrics count:', data.metrics ? data.metrics.length : 0);
+                
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
                 
                 if (data.error) {
                     showError('evaluate-error', data.error);
                 } else {
                     displayEvaluateResults(data);
+                    console.log('Evaluation completed in ' + elapsed + 's');
                 }
             } catch (err) {
-                console.error('Request/display error:', err);
+                console.error('Error:', err);
                 showError('evaluate-error', 'Error: ' + err.message);
-            } finally {
-                // ALWAYS hide progress and reset button
-                console.log('Finally block - hiding progress');
-                progress.hide();
-                // Also force hide with direct DOM manipulation
-                var progressEl = document.getElementById('evaluate-progress');
-                if (progressEl) {
-                    progressEl.style.display = 'none';
-                    progressEl.classList.remove('show');
-                }
-                btn.disabled = false;
-                btnText.textContent = 'Evaluate Clustering';
             }
+            
+            // Always reset
+            progressEl.style.display = 'none';
+            btn.disabled = false;
+            btnText.textContent = 'Evaluate Clustering';
         }
         
         // Compare form submission
         async function submitCompare(e) {
-            e.preventDefault();
+            if (e) e.preventDefault();
             
             const btn = document.getElementById('compare-btn');
             const btnText = btn.querySelector('.btn-text');
+            const progressEl = document.getElementById('compare-progress');
             
+            // Reset UI
             btn.disabled = true;
-            btnText.textContent = 'Comparing...';
-            
-            // Hide previous results
+            btnText.textContent = 'Processing...';
             document.getElementById('compare-results').classList.remove('show');
             document.getElementById('compare-error').classList.add('hidden');
             
-            // Start progress animation
-            const progress = showProgress('compare', [
-                'Loading CSV files...',
-                'Evaluating first clustering...',
-                'Evaluating second clustering...',
-                'Comparing metrics...',
-                'Formatting results...'
-            ]);
+            // Show simple status
+            progressEl.style.display = 'block';
+            progressEl.innerHTML = '<div style="padding:1rem;background:#f0f9ff;border-radius:8px;"><strong>⏳ Comparing...</strong><br><span id="cmp-status">Sending request...</span></div>';
+            
+            const file1 = document.getElementById('compare-file1').files[0];
+            const file2 = document.getElementById('compare-file2').files[0];
+            
+            if (!file1 || !file2) {
+                showError('compare-error', 'Please select both files');
+                btn.disabled = false;
+                btnText.textContent = 'Compare Clusterings';
+                progressEl.style.display = 'none';
+                return;
+            }
             
             const formData = new FormData();
-            formData.append('file1', document.getElementById('compare-file1').files[0]);
-            formData.append('file2', document.getElementById('compare-file2').files[0]);
-            formData.append('name1', document.getElementById('name1').value || document.getElementById('compare-file1').files[0].name);
-            formData.append('name2', document.getElementById('name2').value || document.getElementById('compare-file2').files[0].name);
+            formData.append('file1', file1);
+            formData.append('file2', file2);
+            formData.append('name1', document.getElementById('name1').value || file1.name);
+            formData.append('name2', document.getElementById('name2').value || file2.name);
             formData.append('exclude', document.getElementById('compare-exclude').value);
             
             try {
-                console.log('Sending compare request...');
+                document.getElementById('cmp-status').textContent = 'Uploading files...';
                 const response = await fetch('/api/compare', { method: 'POST', body: formData });
-                console.log('Compare response received, status:', response.status);
+                
+                document.getElementById('cmp-status').textContent = 'Parsing response...';
                 const data = await response.json();
-                console.log('Compare data parsed');
                 
                 if (data.error) {
                     showError('compare-error', data.error);
@@ -877,20 +884,14 @@
                     displayCompareResults(data);
                 }
             } catch (err) {
-                console.error('Compare error:', err);
+                console.error('Error:', err);
                 showError('compare-error', 'Error: ' + err.message);
-            } finally {
-                // ALWAYS hide progress and reset button
-                console.log('Compare finally - hiding progress');
-                progress.hide();
-                var progressEl = document.getElementById('compare-progress');
-                if (progressEl) {
-                    progressEl.style.display = 'none';
-                    progressEl.classList.remove('show');
-                }
-                btn.disabled = false;
-                btnText.textContent = 'Compare Clusterings';
             }
+            
+            // Always reset
+            progressEl.style.display = 'none';
+            btn.disabled = false;
+            btnText.textContent = 'Compare Clusterings';
         }
         
         function showError(elementId, message) {

@@ -36,6 +36,11 @@ def create_app(debug: bool = False) -> Flask:
         total_metrics = len(metrics_list)
         return render_template("index.html", total_metrics=total_metrics)
 
+    @app.route("/api/health")
+    def health():
+        """Health check endpoint."""
+        return jsonify({"status": "ok"})
+
     @app.route("/api/evaluate", methods=["POST"])
     def api_evaluate():
         """
@@ -231,4 +236,5 @@ def run_server(host: str = "127.0.0.1", port: int = 5000, debug: bool = False):
     app = create_app(debug=debug)
     print(f"\n🚀 Metricate Web UI starting at http://{host}:{port}")
     print("   Press Ctrl+C to stop\n")
-    app.run(host=host, port=port, debug=debug)
+    # Enable threaded mode for concurrent requests
+    app.run(host=host, port=port, debug=debug, threaded=True)
