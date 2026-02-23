@@ -32,8 +32,8 @@ def create_app(debug: bool = False) -> Flask:
     @app.route("/")
     def index():
         """Render the main page with upload form."""
-        metrics_info = metricate.list_metrics()
-        total_metrics = sum(len(m) for m in metrics_info.values())
+        metrics_list = metricate.list_metrics()
+        total_metrics = len(metrics_list)
         return render_template("index.html", total_metrics=total_metrics)
 
     @app.route("/api/evaluate", methods=["POST"])
