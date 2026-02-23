@@ -456,6 +456,11 @@
             <p class="subtitle">Evaluate clustering quality with {{ total_metrics }} metrics</p>
         </header>
         
+        <!-- Debug log area -->
+        <div id="debug-log" style="background:#1e1e1e;color:#0f0;font-family:monospace;font-size:11px;padding:8px;margin-bottom:1rem;max-height:150px;overflow-y:auto;border-radius:4px;display:block;">
+            <div>Debug log initialized...</div>
+        </div>
+        
         <div class="tabs">
             <button type="button" class="tab active" id="tab-evaluate" data-tab="evaluate" onclick="switchTab('evaluate'); return false;">Evaluate</button>
             <button type="button" class="tab" id="tab-compare" data-tab="compare" onclick="switchTab('compare'); return false;">Compare</button>
@@ -671,11 +676,16 @@
             input.addEventListener('change', () => {
                 if (input.files.length) {
                     dropzone.classList.add('file-selected');
-                    dropzone.innerHTML = `
-                        <div class="upload-icon">✅</div>
-                        <div class="file-name">${input.files[0].name}</div>
-                        <div class="upload-hint">${(input.files[0].size / 1024 / 1024).toFixed(2)} MB</div>
-                    `;
+                    // Update visual elements without destroying the input
+                    var icon = dropzone.querySelector('.upload-icon');
+                    var text = dropzone.querySelector('.upload-text');
+                    var hint = dropzone.querySelector('.upload-hint');
+                    if (icon) icon.textContent = '✅';
+                    if (text) {
+                        text.textContent = input.files[0].name;
+                        text.classList.add('file-name');
+                    }
+                    if (hint) hint.textContent = (input.files[0].size / 1024 / 1024).toFixed(2) + ' MB';
                     updateButtonState(btnId);
                 }
             });
@@ -711,6 +721,20 @@
             setupDropzone('compare-dropzone1', 'compare-file1', 'compare-btn');
             setupDropzone('compare-dropzone2', 'compare-file2', 'compare-btn');
         }
+        
+        // Debug logging function - visible on page
+        function debugLog(msg) {
+            console.log(msg);
+            var logEl = document.getElementById('debug-log');
+            if (logEl) {
+                var now = new Date().toLocaleTimeString();
+                var line = document.createElement('div');
+                line.textContent = '[' + now + '] ' + msg;
+                logEl.appendChild(line);
+                logEl.scrollTop = logEl.scrollHeight;
+            }
+        }
+        debugLog('Script loaded');
         
         // Progress bar animation - using global to ensure cleanup
         var progressIntervals = {};
@@ -778,11 +802,14 @@
         
         // Evaluate form submission
         function submitEvaluate(e) {
+            debugLog('submitEvaluate called');
             if (e) e.preventDefault();
             
             var btn = document.getElementById('evaluate-btn');
             var btnText = btn.querySelector('.btn-text');
             var progressEl = document.getElementById('evaluate-progress');
+            
+            debugLog('Got elements OK');
             
             // Reset UI
             btn.disabled = true;
@@ -795,7 +822,10 @@
             progressEl.innerHTML = '<div style="padding:1rem;background:#f0f9ff;border-radius:8px;"><strong>⏳ Evaluating...</strong><br><span id="eval-status">Preparing upload...</span></div>';
             
             var fileInput = document.getElementById('evaluate-file');
+            debugLog('fileInput found: ' + !!fileInput + ', files: ' + (fileInput ? fileInput.files.length : 0));
+            
             if (!fileInput.files[0]) {
+                debugLog('ERROR: No file selected');
                 showError('evaluate-error', 'No file selected');
                 btn.disabled = false;
                 btnText.textContent = 'Evaluate Clustering';
@@ -803,56 +833,86 @@
                 return;
             }
             
+            var file = fileInput.files[0];
+            debugLog('File: ' + file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)');
+            
             var formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+            formData.append('file', file);
             formData.append('exclude', document.getElementById('exclude').value);
             formData.append('force_all', document.getElementById('force-all').checked ? 'true' : 'false');
+            debugLog('FormData created');
             
             // Use XMLHttpRequest for better VS Code Simple Browser compatibility
             var xhr = new XMLHttpRequest();
-            xhr.open('POST', '/api/evaluate', true);
+            debugLog('XHR created');
+            
+            xhr.onreadystatechange = function() {
+                debugLog('readyState: ' + xhr.readyState + ', status: ' + xhr.status);
+            };
             
             xhr.onloadstart = function() {
-                document.getElementById('eval-status').textContent = 'Uploading file (' + (fileInput.files[0].size/1024).toFixed(1) + ' KB)...';
+                debugLog('Upload starting...');
+                document.getElementById('eval-status').textContent = 'Uploading file (' + (file.size/1024).toFixed(1) + ' KB)...';
             };
             
             xhr.onload = function() {
+                debugLog('Response received, status: ' + xhr.status);
                 progressEl.style.display = 'none';
                 btn.disabled = false;
                 btnText.textContent = 'Evaluate Clustering';
                 
                 if (xhr.status === 200) {
                     try {
+                        debugLog('Parsing JSON...');
                         var data = JSON.parse(xhr.responseText);
+                        debugLog('Parsed OK, metrics: ' + (data.metrics ? data.metrics.length : 'none'));
                         if (data.error) {
                             showError('evaluate-error', data.error);
                         } else {
                             displayEvaluateResults(data);
+                            debugLog('Results displayed!');
                         }
                     } catch (parseErr) {
-                        showError('evaluate-error', 'Failed to parse response');
+                        debugLog('Parse error: ' + parseErr.message);
+                        showError('evaluate-error', 'Failed to parse response: ' + parseErr.message);
                     }
                 } else {
+                    debugLog('Server error: ' + xhr.status);
                     showError('evaluate-error', 'Server error: ' + xhr.status);
                 }
             };
             
-            xhr.onerror = function() {
+            xhr.onerror = function(err) {
+                debugLog('Network error!');
                 progressEl.style.display = 'none';
                 btn.disabled = false;
                 btnText.textContent = 'Evaluate Clustering';
                 showError('evaluate-error', 'Network error - check if server is running');
             };
             
+            xhr.ontimeout = function() {
+                debugLog('Request timed out!');
+                progressEl.style.display = 'none';
+                btn.disabled = false;
+                btnText.textContent = 'Evaluate Clustering';
+                showError('evaluate-error', 'Request timed out');
+            };
+            
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {
                     var pct = Math.round((e.loaded / e.total) * 100);
+                    debugLog('Upload: ' + pct + '%');
                     document.getElementById('eval-status').textContent = 'Uploading: ' + pct + '%';
                 }
             };
             
+            debugLog('Opening XHR to /api/evaluate...');
+            xhr.open('POST', '/api/evaluate', true);
+            
+            debugLog('Calling xhr.send()...');
             document.getElementById('eval-status').textContent = 'Sending request...';
             xhr.send(formData);
+            debugLog('xhr.send() called - waiting for response...');
         }
         
         // Compare form submission
