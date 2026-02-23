@@ -227,6 +227,83 @@
             to { transform: rotate(360deg); }
         }
         
+        .progress-container {
+            display: none;
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+        
+        .progress-container.show {
+            display: block;
+        }
+        
+        .progress-status {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .progress-text {
+            color: var(--text);
+            font-weight: 500;
+        }
+        
+        .progress-percent {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .progress-bar-outer {
+            width: 100%;
+            height: 12px;
+            background: var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #60a5fa);
+            border-radius: 6px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-bar-inner.indeterminate {
+            width: 30%;
+            animation: indeterminate 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes indeterminate {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+        
+        .progress-steps {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .progress-step.done {
+            color: var(--success);
+        }
+        
+        .progress-step.active {
+            color: var(--primary);
+            font-weight: 500;
+        }
+        
         .results {
             display: none;
         }
@@ -406,8 +483,24 @@
                     
                     <button type="button" class="btn btn-primary btn-block" id="evaluate-btn" disabled onclick="submitEvaluate(event)">
                         <span class="btn-text">Evaluate Clustering</span>
-                        <span class="spinner hidden"></span>
                     </button>
+                    
+                    <div id="evaluate-progress" class="progress-container">
+                        <div class="progress-status">
+                            <span class="progress-text" id="evaluate-progress-text">Loading data...</span>
+                            <span class="progress-percent" id="evaluate-progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar-outer">
+                            <div class="progress-bar-inner" id="evaluate-progress-bar"></div>
+                        </div>
+                        <div class="progress-steps" id="evaluate-progress-steps">
+                            <div class="progress-step active" data-step="load">⏳ Loading CSV data...</div>
+                            <div class="progress-step" data-step="validate">○ Validating columns...</div>
+                            <div class="progress-step" data-step="precompute">○ Precomputing statistics...</div>
+                            <div class="progress-step" data-step="metrics">○ Calculating 36 metrics...</div>
+                            <div class="progress-step" data-step="format">○ Formatting results...</div>
+                        </div>
+                    </div>
                 </form>
             </div>
             
@@ -480,8 +573,24 @@
                     
                     <button type="button" class="btn btn-primary btn-block" id="compare-btn" disabled onclick="submitCompare(event)">
                         <span class="btn-text">Compare Clusterings</span>
-                        <span class="spinner hidden"></span>
                     </button>
+                    
+                    <div id="compare-progress" class="progress-container">
+                        <div class="progress-status">
+                            <span class="progress-text" id="compare-progress-text">Loading files...</span>
+                            <span class="progress-percent" id="compare-progress-percent">0%</span>
+                        </div>
+                        <div class="progress-bar-outer">
+                            <div class="progress-bar-inner" id="compare-progress-bar"></div>
+                        </div>
+                        <div class="progress-steps" id="compare-progress-steps">
+                            <div class="progress-step active" data-step="load">⏳ Loading CSV files...</div>
+                            <div class="progress-step" data-step="eval1">○ Evaluating first clustering...</div>
+                            <div class="progress-step" data-step="eval2">○ Evaluating second clustering...</div>
+                            <div class="progress-step" data-step="compare">○ Comparing metrics...</div>
+                            <div class="progress-step" data-step="format">○ Formatting results...</div>
+                        </div>
+                    </div>
                 </form>
             </div>
             
@@ -600,17 +709,85 @@
             setupDropzone('compare-dropzone2', 'compare-file2', 'compare-btn');
         }
         
+        // Progress bar animation
+        function showProgress(prefix, steps) {
+            const container = document.getElementById(prefix + '-progress');
+            const bar = document.getElementById(prefix + '-progress-bar');
+            const text = document.getElementById(prefix + '-progress-text');
+            const percent = document.getElementById(prefix + '-progress-percent');
+            const stepsEl = document.getElementById(prefix + '-progress-steps');
+            
+            container.classList.add('show');
+            let currentStep = 0;
+            const stepEls = stepsEl.querySelectorAll('.progress-step');
+            
+            function updateStep(index, progressPct) {
+                stepEls.forEach((el, i) => {
+                    el.classList.remove('done', 'active');
+                    if (i < index) {
+                        el.classList.add('done');
+                        el.innerHTML = '✓ ' + el.textContent.substring(2);
+                    } else if (i === index) {
+                        el.classList.add('active');
+                        el.innerHTML = '⏳ ' + el.textContent.substring(2);
+                    } else {
+                        el.innerHTML = '○ ' + el.textContent.substring(2);
+                    }
+                });
+                text.textContent = steps[index] || 'Processing...';
+                percent.textContent = progressPct + '%';
+                bar.style.width = progressPct + '%';
+            }
+            
+            // Simulate progress through steps
+            const interval = setInterval(() => {
+                if (currentStep < steps.length - 1) {
+                    currentStep++;
+                    const pct = Math.min(90, Math.round((currentStep / steps.length) * 100));
+                    updateStep(currentStep, pct);
+                }
+            }, 800);
+            
+            return {
+                complete: function() {
+                    clearInterval(interval);
+                    updateStep(steps.length - 1, 100);
+                    stepEls.forEach(el => {
+                        el.classList.remove('active');
+                        el.classList.add('done');
+                        el.innerHTML = '✓ ' + el.textContent.substring(2);
+                    });
+                    setTimeout(() => container.classList.remove('show'), 500);
+                },
+                error: function() {
+                    clearInterval(interval);
+                    container.classList.remove('show');
+                }
+            };
+        }
+        
         // Evaluate form submission
         async function submitEvaluate(e) {
             e.preventDefault();
             
             const btn = document.getElementById('evaluate-btn');
             const btnText = btn.querySelector('.btn-text');
-            const spinner = btn.querySelector('.spinner');
             
             btn.disabled = true;
             btnText.textContent = 'Evaluating...';
-            spinner.classList.remove('hidden');
+            
+            // Hide previous results
+            document.getElementById('evaluate-results').classList.remove('show');
+            document.getElementById('evaluate-error').classList.add('hidden');
+            
+            // Start progress animation
+            const progress = showProgress('evaluate', [
+                'Loading CSV data...',
+                'Validating columns...',
+                'Precomputing statistics...',
+                'Calculating 36 metrics...',
+                'Formatting results...'
+            ]);
             
             const formData = new FormData();
             formData.append('file', document.getElementById('evaluate-file').files[0]);
@@ -621,17 +798,19 @@
                 const response = await fetch('/api/evaluate', { method: 'POST', body: formData });
                 const data = await response.json();
                 
+                progress.complete();
+                
                 if (data.error) {
                     showError('evaluate-error', data.error);
                 } else {
                     displayEvaluateResults(data);
                 }
             } catch (err) {
+                progress.error();
                 showError('evaluate-error', 'Request failed: ' + err.message);
             } finally {
                 btn.disabled = false;
                 btnText.textContent = 'Evaluate Clustering';
-                spinner.classList.add('hidden');
             }
         }
         
@@ -641,11 +820,22 @@
             
             const btn = document.getElementById('compare-btn');
             const btnText = btn.querySelector('.btn-text');
-            const spinner = btn.querySelector('.spinner');
             
             btn.disabled = true;
             btnText.textContent = 'Comparing...';
-            spinner.classList.remove('hidden');
+            
+            // Hide previous results
+            document.getElementById('compare-results').classList.remove('show');
+            document.getElementById('compare-error').classList.add('hidden');
+            
+            // Start progress animation
+            const progress = showProgress('compare', [
+                'Loading CSV files...',
+                'Evaluating first clustering...',
+                'Evaluating second clustering...',
+                'Comparing metrics...',
+                'Formatting results...'
+            ]);
             
             const formData = new FormData();
             formData.append('file1', document.getElementById('compare-file1').files[0]);
@@ -658,17 +848,19 @@
                 const response = await fetch('/api/compare', { method: 'POST', body: formData });
                 const data = await response.json();
                 
+                progress.complete();
+                
                 if (data.error) {
                     showError('compare-error', data.error);
                 } else {
                     displayCompareResults(data);
                 }
             } catch (err) {
+                progress.error();
                 showError('compare-error', 'Request failed: ' + err.message);
             } finally {
                 btn.disabled = false;
                 btnText.textContent = 'Compare Clusterings';
-                spinner.classList.add('hidden');
             }
         }
         
