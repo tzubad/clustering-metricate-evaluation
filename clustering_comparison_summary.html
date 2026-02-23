@@ -1,0 +1,558 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clustering Comparison - Original vs Optimized</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f5f5;
+        }
+        h1, h2 { color: #333; text-align: center; }
+        .subtitle { color: #666; text-align: center; margin-bottom: 30px; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .stat-value { font-size: 2.5em; font-weight: bold; color: #1a73e8; }
+        .stat-label { color: #666; margin-top: 5px; }
+        .improvement { color: #34a853; }
+        .degraded { color: #ea4335; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 40px;
+        }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #1a73e8; color: white; }
+        tr:hover { background: #f8f9fa; }
+        .cluster-id { font-weight: bold; color: #1a73e8; }
+        .arrow { color: #666; text-align: center; }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .badge-same { background: #e8f5e9; color: #2e7d32; }
+        .badge-similar { background: #e3f2fd; color: #1565c0; }
+        .badge-split { background: #fff3e0; color: #ef6c00; }
+        .badge-merged { background: #fce4ec; color: #c2185b; }
+    </style>
+</head>
+<body>
+    <h1>🔬 Clustering Comparison</h1>
+    <p class="subtitle">Original (36 clusters) vs Optimized (17 clusters)</p>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value degraded">-0.088</div>
+            <div class="stat-label">Original Silhouette</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value improvement">0.401</div>
+            <div class="stat-label">Optimized Silhouette</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value improvement">+0.489</div>
+            <div class="stat-label">Improvement</div>
+        </div>
+    </div>
+
+    <h2>New Cluster Summary</h2>
+    <table>
+        <tr>
+            <th>New Cluster</th>
+            <th>Size</th>
+            <th>Primary Source</th>
+            <th>Title/Theme</th>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">0</td>
+            <td>140</td>
+            <td>From cluster 20 (63%)</td>
+            <td>Iranian officials condemn + Canada sanctions against </td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">1</td>
+            <td>1,420</td>
+            <td>From cluster 18 (69%)</td>
+            <td>Detained protesters, forc + Diaspora rallies behind P</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">2</td>
+            <td>938</td>
+            <td>From cluster 18 (52%)</td>
+            <td>Detained protesters, forc + Opposition calls for inte</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">3</td>
+            <td>527</td>
+            <td>From cluster 9 (54%)</td>
+            <td>Canada sanctions against  + Mixed reactions: Tehran e</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">4</td>
+            <td>1,076</td>
+            <td>From cluster 18 (47%)</td>
+            <td>Detained protesters, forc + Global rallies backing Pa</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">5</td>
+            <td>856</td>
+            <td>From cluster 4 (65%)</td>
+            <td>Regime killings of protes + Detained protesters, forc</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">6</td>
+            <td>719</td>
+            <td>From cluster 3 (27%)</td>
+            <td>Munich pro-democracy demo + 200,000+ in Munich suppor</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">7</td>
+            <td>1,057</td>
+            <td>From cluster 18 (53%)</td>
+            <td>Detained protesters, forc + Critics condemn pro-Pales</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">8</td>
+            <td>695</td>
+            <td>From cluster 18 (68%)</td>
+            <td>Detained protesters, forc + Diaspora rallies for Feb </td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">9</td>
+            <td>204</td>
+            <td>From cluster 5 (99%)</td>
+            <td>Lindsey Graham at Munich rally declaring 'ayatolla</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">10</td>
+            <td>1,221</td>
+            <td>From cluster 9 (53%)</td>
+            <td>Canada sanctions against  + US military preparing for</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">11</td>
+            <td>67</td>
+            <td>From cluster 6 (99%)</td>
+            <td>Zelenskyy calls for action against Iran at Munich </td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">12</td>
+            <td>227</td>
+            <td>From cluster 17 (51%)</td>
+            <td>Tehran nighttime protests + Detained protesters, forc</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">13</td>
+            <td>586</td>
+            <td>From cluster 0 (50%)</td>
+            <td>Iranian diaspora rallies  + Mixed reactions: Tehran e</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">14</td>
+            <td>138</td>
+            <td>From cluster 11 (67%)</td>
+            <td>X removes verification ba + Regime killings of protes</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">15</td>
+            <td>439</td>
+            <td>From cluster 19 (30%)</td>
+            <td>Reza Pahlavi as transitio + Reza Pahlavi calls for US</td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">16</td>
+            <td>18</td>
+            <td>From cluster 16 (94%)</td>
+            <td>Baal effigy burning at Islamic Revolution annivers</td>
+        </tr>
+
+    </table>
+
+    <h2>What Happened to Original Clusters</h2>
+    <table>
+        <tr>
+            <th>Old Cluster</th>
+            <th>Old Title</th>
+            <th>Size</th>
+            <th>→</th>
+            <th>Mapped To</th>
+            <th>Status</th>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">-1</td>
+            <td>Noise (unclustered posts)...</td>
+            <td>0</td>
+            <td class="arrow">→</td>
+            <td>Cluster N/A (0%)<br><small>Not in dataset</small></td>
+            <td><span class="badge badge-merged">N/A</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">0</td>
+            <td>Iranian diaspora rallies demanding regime cha...</td>
+            <td>309</td>
+            <td class="arrow">→</td>
+            <td>Cluster 13 (94%)<br><small>Iranian diaspora rallies  + Mixed reacti</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">1</td>
+            <td>Western observers support anti-government pro...</td>
+            <td>222</td>
+            <td class="arrow">→</td>
+            <td>Cluster 7 (78%)<br><small>Detained protesters, forc + Critics cond</small></td>
+            <td><span class="badge badge-similar">Similar</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">2</td>
+            <td>Trump-Netanyahu pressure strategy against Ira...</td>
+            <td>180</td>
+            <td class="arrow">→</td>
+            <td>Cluster 10 (99%)<br><small>Canada sanctions against  + US military </small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">3</td>
+            <td>Munich pro-democracy demonstration (250,000 I...</td>
+            <td>191</td>
+            <td class="arrow">→</td>
+            <td>Cluster 6 (100%)<br><small>Munich pro-democracy demo + 200,000+ in </small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">4</td>
+            <td>Regime killings of protesters, systematic rep...</td>
+            <td>655</td>
+            <td class="arrow">→</td>
+            <td>Cluster 5 (85%)<br><small>Regime killings of protes + Detained pro</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">5</td>
+            <td>Lindsey Graham at Munich rally declaring 'aya...</td>
+            <td>201</td>
+            <td class="arrow">→</td>
+            <td>Cluster 9 (100%)<br><small>Lindsey Graham at Munich rally declaring</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">6</td>
+            <td>Zelenskyy calls for action against Iran at Mu...</td>
+            <td>66</td>
+            <td class="arrow">→</td>
+            <td>Cluster 11 (100%)<br><small>Zelenskyy calls for action against Iran </small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">7</td>
+            <td>Global diaspora solidarity rallies, honoring ...</td>
+            <td>138</td>
+            <td class="arrow">→</td>
+            <td>Cluster 2 (47%)<br><small>Detained protesters, forc + Opposition c</small></td>
+            <td><span class="badge badge-split">Split</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">8</td>
+            <td>Global diaspora rallies with Reza Pahlavi lea...</td>
+            <td>163</td>
+            <td class="arrow">→</td>
+            <td>Cluster 4 (87%)<br><small>Detained protesters, forc + Global ralli</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">9</td>
+            <td>Canada sanctions against Iran, diplomatic rel...</td>
+            <td>1,104</td>
+            <td class="arrow">→</td>
+            <td>Cluster 10 (59%)<br><small>Canada sanctions against  + US military </small></td>
+            <td><span class="badge badge-split">Split</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">10</td>
+            <td>Reza Pahlavi calls for US military interventi...</td>
+            <td>103</td>
+            <td class="arrow">→</td>
+            <td>Cluster 15 (99%)<br><small>Reza Pahlavi as transitio + Reza Pahlavi</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">11</td>
+            <td>X removes verification badges from Iranian of...</td>
+            <td>93</td>
+            <td class="arrow">→</td>
+            <td>Cluster 14 (99%)<br><small>X removes verification ba + Regime killi</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">12</td>
+            <td>Trump advocates regime change, US military as...</td>
+            <td>118</td>
+            <td class="arrow">→</td>
+            <td>Cluster 10 (97%)<br><small>Canada sanctions against  + US military </small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">13</td>
+            <td>Diaspora rallies for Feb 14, 2026 demonstrati...</td>
+            <td>191</td>
+            <td class="arrow">→</td>
+            <td>Cluster 8 (99%)<br><small>Detained protesters, forc + Diaspora ral</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">14</td>
+            <td>Munich/Berlin protests with Lion and Sun flag...</td>
+            <td>134</td>
+            <td class="arrow">→</td>
+            <td>Cluster 6 (96%)<br><small>Munich pro-democracy demo + 200,000+ in </small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">15</td>
+            <td>Mixed reactions: Tehran explosions, economic ...</td>
+            <td>253</td>
+            <td class="arrow">→</td>
+            <td>Cluster 13 (53%)<br><small>Iranian diaspora rallies  + Mixed reacti</small></td>
+            <td><span class="badge badge-split">Split</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">16</td>
+            <td>Baal effigy burning at Islamic Revolution ann...</td>
+            <td>18</td>
+            <td class="arrow">→</td>
+            <td>Cluster 16 (94%)<br><small>Baal effigy burning at Islamic Revolutio</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">17</td>
+            <td>Tehran nighttime protests, chanting anti-regi...</td>
+            <td>117</td>
+            <td class="arrow">→</td>
+            <td>Cluster 12 (99%)<br><small>Tehran nighttime protests + Detained pro</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">18</td>
+            <td>Detained protesters, forced confessions, exec...</td>
+            <td>3,524</td>
+            <td class="arrow">→</td>
+            <td>Cluster 1 (28%)<br><small>Detained protesters, forc + Diaspora ral</small></td>
+            <td><span class="badge badge-split">Split</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">19</td>
+            <td>Reza Pahlavi as transitional leader, democrat...</td>
+            <td>133</td>
+            <td class="arrow">→</td>
+            <td>Cluster 15 (98%)<br><small>Reza Pahlavi as transitio + Reza Pahlavi</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">20</td>
+            <td>Iranian officials condemn Pelosi's Munich rem...</td>
+            <td>294</td>
+            <td class="arrow">→</td>
+            <td>Cluster 13 (43%)<br><small>Iranian diaspora rallies  + Mixed reacti</small></td>
+            <td><span class="badge badge-split">Split</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">21</td>
+            <td>Valentine's Day protests across multiple citi...</td>
+            <td>88</td>
+            <td class="arrow">→</td>
+            <td>Cluster 4 (99%)<br><small>Detained protesters, forc + Global ralli</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">22</td>
+            <td>Iranian FM dismisses Munich Conference as 'ci...</td>
+            <td>31</td>
+            <td class="arrow">→</td>
+            <td>Cluster 6 (97%)<br><small>Munich pro-democracy demo + 200,000+ in </small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">23</td>
+            <td>US military preparing for potential operation...</td>
+            <td>287</td>
+            <td class="arrow">→</td>
+            <td>Cluster 10 (95%)<br><small>Canada sanctions against  + US military </small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">24</td>
+            <td>Western politicians at Munich rally (250,000 ...</td>
+            <td>65</td>
+            <td class="arrow">→</td>
+            <td>Cluster 6 (72%)<br><small>Munich pro-democracy demo + 200,000+ in </small></td>
+            <td><span class="badge badge-similar">Similar</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">25</td>
+            <td>Peaceful German demonstration, 250,000 partic...</td>
+            <td>55</td>
+            <td class="arrow">→</td>
+            <td>Cluster 6 (100%)<br><small>Munich pro-democracy demo + 200,000+ in </small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">26</td>
+            <td>International solidarity campaigns, grassroot...</td>
+            <td>53</td>
+            <td class="arrow">→</td>
+            <td>Cluster 2 (100%)<br><small>Detained protesters, forc + Opposition c</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">27</td>
+            <td>Record-breaking rallies (Toronto, Melbourne, ...</td>
+            <td>76</td>
+            <td class="arrow">→</td>
+            <td>Cluster 4 (58%)<br><small>Detained protesters, forc + Global ralli</small></td>
+            <td><span class="badge badge-split">Split</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">28</td>
+            <td>Reza Pahlavi diaspora support, Princess Noor ...</td>
+            <td>80</td>
+            <td class="arrow">→</td>
+            <td>Cluster 6 (41%)<br><small>Munich pro-democracy demo + 200,000+ in </small></td>
+            <td><span class="badge badge-split">Split</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">29</td>
+            <td>Critics condemn pro-Palestine activists ignor...</td>
+            <td>219</td>
+            <td class="arrow">→</td>
+            <td>Cluster 7 (88%)<br><small>Detained protesters, forc + Critics cond</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">30</td>
+            <td>Diaspora rallies behind Pahlavi, 'Make Iran G...</td>
+            <td>459</td>
+            <td class="arrow">→</td>
+            <td>Cluster 1 (92%)<br><small>Detained protesters, forc + Diaspora ral</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">31</td>
+            <td>Global rallies backing Pahlavi (1M+ across ci...</td>
+            <td>186</td>
+            <td class="arrow">→</td>
+            <td>Cluster 4 (98%)<br><small>Detained protesters, forc + Global ralli</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">32</td>
+            <td>200,000+ in Munich supporting Pahlavi, appeal...</td>
+            <td>188</td>
+            <td class="arrow">→</td>
+            <td>Cluster 6 (100%)<br><small>Munich pro-democracy demo + 200,000+ in </small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">33</td>
+            <td>Regime executions of alleged Mossad agents...</td>
+            <td>90</td>
+            <td class="arrow">→</td>
+            <td>Cluster 3 (48%)<br><small>Canada sanctions against  + Mixed reacti</small></td>
+            <td><span class="badge badge-split">Split</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">34</td>
+            <td>Putin backs Iran's sovereignty, Russia-Tehran...</td>
+            <td>26</td>
+            <td class="arrow">→</td>
+            <td>Cluster 3 (96%)<br><small>Canada sanctions against  + Mixed reacti</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+        <tr>
+            <td class="cluster-id">35</td>
+            <td>Opposition calls for international attention ...</td>
+            <td>218</td>
+            <td class="arrow">→</td>
+            <td>Cluster 2 (96%)<br><small>Detained protesters, forc + Opposition c</small></td>
+            <td><span class="badge badge-same">≈ Same</span></td>
+        </tr>
+
+    </table>
+
+    <p style="text-align: center; color: #666; margin-top: 40px;">
+        <a href="new_clustering_visualization.html">View Interactive Visualization →</a>
+    </p>
+</body>
+</html>

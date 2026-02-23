@@ -1,0 +1,35 @@
+# CSV files
+*.csv
+
+# Cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyc
+
+# Specify folder
+.specify/
+
+# GitHub folder
+.github/
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
