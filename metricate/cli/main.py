@@ -443,6 +443,55 @@ def degrade(csv_path, output_dir, label_col, embedding_cols, types, levels, no_v
         sys.exit(1)
 
 
+@cli.command()
+@click.option(
+    "--host",
+    "-h",
+    default="127.0.0.1",
+    help="Host to bind to (default: 127.0.0.1)",
+)
+@click.option(
+    "--port",
+    "-p",
+    default=5000,
+    type=int,
+    help="Port to listen on (default: 5000)",
+)
+@click.option(
+    "--debug",
+    "-d",
+    is_flag=True,
+    help="Enable debug mode with auto-reload",
+)
+def web(host: str, port: int, debug: bool):
+    """Start the Metricate web UI.
+
+    Launches a browser-based interface for evaluating and comparing
+    clusterings. Upload CSV files and view results in formatted tables.
+
+    Examples:
+
+        metricate web
+
+        metricate web --port 8080
+
+        metricate web --host 0.0.0.0 --debug
+    """
+    try:
+        from metricate.web.app import run_server
+
+        run_server(host=host, port=port, debug=debug)
+    except ImportError as e:
+        click.echo(
+            "Error: Flask is required for the web UI. Install with: pip install flask", err=True
+        )
+        click.echo(f"Details: {e}", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"Error starting web server: {e}", err=True)
+        sys.exit(1)
+
+
 def main():
     """Entry point for the CLI."""
     cli()

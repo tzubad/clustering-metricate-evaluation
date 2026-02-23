@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metricate - Clustering Evaluation</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0;
+        }
+        
+        .tab {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            color: var(--primary);
+        }
+        
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+        }
+        
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        .upload-zone input[type="file"] {
+            display: none;
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .upload-text {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .upload-hint {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .file-selected {
+            background: rgba(37, 99, 235, 0.1);
+            border-color: var(--primary);
+        }
+        
+        .file-name {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .options {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+        
+        .options-title {
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+        }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        
+        input[type="text"]:focus, input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 1.2rem;
+            height: 1.2rem;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-primary:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+        }
+        
+        .btn-block {
+            width: 100%;
+            margin-top: 1.5rem;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid transparent;
+            border-top-color: currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .results {
+            display: none;
+        }
+        
+        .results.show {
+            display: block;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .summary-stat {
+            text-align: center;
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+        
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .summary-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        
+        .winner-banner {
+            background: linear-gradient(135deg, var(--success), #16a34a);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .winner-banner h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .tie-banner {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+        }
+        
+        .metrics-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        .metrics-table th, .metrics-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .metrics-table th {
+            background: var(--bg);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        .metrics-table tbody tr:hover {
+            background: var(--bg);
+        }
+        
+        .metric-value {
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .direction-up {
+            color: var(--success);
+        }
+        
+        .direction-down {
+            color: var(--error);
+        }
+        
+        .tier-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .tier-1 { background: #dbeafe; color: #1e40af; }
+        .tier-2 { background: #f3e8ff; color: #6b21a8; }
+        .tier-3 { background: #fef3c7; color: #92400e; }
+        
+        .skipped {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        
+        .winner-cell {
+            font-weight: 600;
+        }
+        
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-error {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+        
+        .alert-warning {
+            background: #fffbeb;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .compare-files {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .compare-files {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Metricate</h1>
+            <p class="subtitle">Evaluate clustering quality with {{ total_metrics }} metrics</p>
+        </header>
+        
+        <div class="tabs">
+            <button class="tab active" data-tab="evaluate">Evaluate</button>
+            <button class="tab" data-tab="compare">Compare</button>
+        </div>
+        
+        <!-- Evaluate Tab -->
+        <div id="evaluate-tab" class="tab-content">
+            <div class="card">
+                <form id="evaluate-form">
+                    <div class="upload-zone" id="evaluate-dropzone">
+                        <input type="file" id="evaluate-file" accept=".csv">
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-text">Drop your clustering CSV here</div>
+                        <div class="upload-hint">or click to browse</div>
+                    </div>
+                    
+                    <div class="options">
+                        <div class="options-title">Options</div>
+                        <div class="form-group">
+                            <label for="exclude">Exclude Metrics (comma-separated)</label>
+                            <input type="text" id="exclude" placeholder="e.g., Gamma, Tau, G+">
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="force-all">
+                            <label for="force-all" style="margin: 0;">Force all metrics (including O(n²) on large datasets)</label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block" id="evaluate-btn" disabled>
+                        <span class="btn-text">Evaluate Clustering</span>
+                        <span class="spinner hidden"></span>
+                    </button>
+                </form>
+            </div>
+            
+            <div id="evaluate-results" class="results">
+                <div id="evaluate-error" class="alert alert-error hidden"></div>
+                <div id="evaluate-warnings" class="alert alert-warning hidden"></div>
+                
+                <div class="card">
+                    <h2 style="margin-bottom: 1rem;">Summary</h2>
+                    <div class="summary-grid" id="evaluate-summary"></div>
+                </div>
+                
+                <div class="card">
+                    <h2 style="margin-bottom: 1rem;">Metrics</h2>
+                    <div style="overflow-x: auto;">
+                        <table class="metrics-table">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Value</th>
+                                    <th>Range</th>
+                                    <th>Direction</th>
+                                    <th>Tier</th>
+                                </tr>
+                            </thead>
+                            <tbody id="evaluate-metrics"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Compare Tab -->
+        <div id="compare-tab" class="tab-content hidden">
+            <div class="card">
+                <form id="compare-form">
+                    <div class="compare-files">
+                        <div>
+                            <h3 style="margin-bottom: 1rem;">Clustering A</h3>
+                            <div class="upload-zone" id="compare-dropzone1">
+                                <input type="file" id="compare-file1" accept=".csv">
+                                <div class="upload-icon">📁</div>
+                                <div class="upload-text">Drop first CSV</div>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label for="name1">Display Name (optional)</label>
+                                <input type="text" id="name1" placeholder="e.g., Baseline">
+                            </div>
+                        </div>
+                        <div>
+                            <h3 style="margin-bottom: 1rem;">Clustering B</h3>
+                            <div class="upload-zone" id="compare-dropzone2">
+                                <input type="file" id="compare-file2" accept=".csv">
+                                <div class="upload-icon">📁</div>
+                                <div class="upload-text">Drop second CSV</div>
+                            </div>
+                            <div class="form-group" style="margin-top: 1rem;">
+                                <label for="name2">Display Name (optional)</label>
+                                <input type="text" id="name2" placeholder="e.g., Optimized">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="options">
+                        <div class="form-group">
+                            <label for="compare-exclude">Exclude Metrics (comma-separated)</label>
+                            <input type="text" id="compare-exclude" placeholder="e.g., Gamma, Tau">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-block" id="compare-btn" disabled>
+                        <span class="btn-text">Compare Clusterings</span>
+                        <span class="spinner hidden"></span>
+                    </button>
+                </form>
+            </div>
+            
+            <div id="compare-results" class="results">
+                <div id="compare-error" class="alert alert-error hidden"></div>
+                <div id="compare-warnings" class="alert alert-warning hidden"></div>
+                
+                <div id="winner-banner" class="winner-banner hidden"></div>
+                
+                <div class="card">
+                    <h2 style="margin-bottom: 1rem;">Comparison Results</h2>
+                    <div style="overflow-x: auto;">
+                        <table class="metrics-table">
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th id="col-a">Clustering A</th>
+                                    <th id="col-b">Clustering B</th>
+                                    <th>Winner</th>
+                                </tr>
+                            </thead>
+                            <tbody id="compare-metrics"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + '-tab').classList.remove('hidden');
+            });
+        });
+        
+        // File upload handling
+        function setupDropzone(dropzoneId, inputId, btnId) {
+            const dropzone = document.getElementById(dropzoneId);
+            const input = document.getElementById(inputId);
+            
+            dropzone.addEventListener('click', () => input.click());
+            dropzone.addEventListener('dragover', e => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+            dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+            dropzone.addEventListener('drop', e => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    input.files = e.dataTransfer.files;
+                    input.dispatchEvent(new Event('change'));
+                }
+            });
+            
+            input.addEventListener('change', () => {
+                if (input.files.length) {
+                    dropzone.classList.add('file-selected');
+                    dropzone.innerHTML = `
+                        <div class="upload-icon">✅</div>
+                        <div class="file-name">${input.files[0].name}</div>
+                        <div class="upload-hint">${(input.files[0].size / 1024 / 1024).toFixed(2)} MB</div>
+                    `;
+                    updateButtonState(btnId);
+                }
+            });
+        }
+        
+        function updateButtonState(btnId) {
+            if (btnId === 'evaluate-btn') {
+                const file = document.getElementById('evaluate-file').files[0];
+                document.getElementById('evaluate-btn').disabled = !file;
+            } else {
+                const file1 = document.getElementById('compare-file1').files[0];
+                const file2 = document.getElementById('compare-file2').files[0];
+                document.getElementById('compare-btn').disabled = !file1 || !file2;
+            }
+        }
+        
+        setupDropzone('evaluate-dropzone', 'evaluate-file', 'evaluate-btn');
+        setupDropzone('compare-dropzone1', 'compare-file1', 'compare-btn');
+        setupDropzone('compare-dropzone2', 'compare-file2', 'compare-btn');
+        
+        // Evaluate form submission
+        document.getElementById('evaluate-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('evaluate-btn');
+            const btnText = btn.querySelector('.btn-text');
+            const spinner = btn.querySelector('.spinner');
+            
+            btn.disabled = true;
+            btnText.textContent = 'Evaluating...';
+            spinner.classList.remove('hidden');
+            
+            const formData = new FormData();
+            formData.append('file', document.getElementById('evaluate-file').files[0]);
+            formData.append('exclude', document.getElementById('exclude').value);
+            formData.append('force_all', document.getElementById('force-all').checked ? 'true' : 'false');
+            
+            try {
+                const response = await fetch('/api/evaluate', { method: 'POST', body: formData });
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError('evaluate-error', data.error);
+                } else {
+                    displayEvaluateResults(data);
+                }
+            } catch (err) {
+                showError('evaluate-error', 'Request failed: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Evaluate Clustering';
+                spinner.classList.add('hidden');
+            }
+        });
+        
+        // Compare form submission
+        document.getElementById('compare-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('compare-btn');
+            const btnText = btn.querySelector('.btn-text');
+            const spinner = btn.querySelector('.spinner');
+            
+            btn.disabled = true;
+            btnText.textContent = 'Comparing...';
+            spinner.classList.remove('hidden');
+            
+            const formData = new FormData();
+            formData.append('file1', document.getElementById('compare-file1').files[0]);
+            formData.append('file2', document.getElementById('compare-file2').files[0]);
+            formData.append('name1', document.getElementById('name1').value || document.getElementById('compare-file1').files[0].name);
+            formData.append('name2', document.getElementById('name2').value || document.getElementById('compare-file2').files[0].name);
+            formData.append('exclude', document.getElementById('compare-exclude').value);
+            
+            try {
+                const response = await fetch('/api/compare', { method: 'POST', body: formData });
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError('compare-error', data.error);
+                } else {
+                    displayCompareResults(data);
+                }
+            } catch (err) {
+                showError('compare-error', 'Request failed: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = 'Compare Clusterings';
+                spinner.classList.add('hidden');
+            }
+        });
+        
+        function showError(elementId, message) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.classList.remove('hidden');
+            el.closest('.results').classList.add('show');
+        }
+        
+        function displayEvaluateResults(data) {
+            const results = document.getElementById('evaluate-results');
+            const error = document.getElementById('evaluate-error');
+            const warnings = document.getElementById('evaluate-warnings');
+            
+            error.classList.add('hidden');
+            warnings.classList.add('hidden');
+            
+            if (data.warnings && data.warnings.length) {
+                warnings.textContent = data.warnings.join('; ');
+                warnings.classList.remove('hidden');
+            }
+            
+            // Summary
+            document.getElementById('evaluate-summary').innerHTML = `
+                <div class="summary-stat">
+                    <div class="summary-value">${data.summary.n_rows.toLocaleString()}</div>
+                    <div class="summary-label">Data Points</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-value">${data.summary.n_clusters}</div>
+                    <div class="summary-label">Clusters</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-value">${data.summary.n_dimensions}</div>
+                    <div class="summary-label">Dimensions</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="summary-value">${data.summary.metrics_computed}</div>
+                    <div class="summary-label">Metrics Computed</div>
+                </div>
+            `;
+            
+            // Metrics table
+            const tbody = document.getElementById('evaluate-metrics');
+            tbody.innerHTML = data.metrics.map(m => `
+                <tr${m.skipped ? ' class="skipped"' : ''}>
+                    <td>${m.name}</td>
+                    <td class="metric-value">${m.skipped ? (m.skip_reason || 'Skipped') : formatValue(m.value)}</td>
+                    <td>${m.range || '-'}</td>
+                    <td class="${m.direction === 'Higher is better' ? 'direction-up' : 'direction-down'}">
+                        ${m.direction === 'Higher is better' ? '↑' : '↓'} ${m.direction || '-'}
+                    </td>
+                    <td><span class="tier-badge tier-${m.tier || 1}">Tier ${m.tier || '-'}</span></td>
+                </tr>
+            `).join('');
+            
+            results.classList.add('show');
+        }
+        
+        function displayCompareResults(data) {
+            const results = document.getElementById('compare-results');
+            const error = document.getElementById('compare-error');
+            const warnings = document.getElementById('compare-warnings');
+            const banner = document.getElementById('winner-banner');
+            
+            error.classList.add('hidden');
+            warnings.classList.add('hidden');
+            
+            if (data.warnings && data.warnings.length) {
+                warnings.textContent = data.warnings.join('; ');
+                warnings.classList.remove('hidden');
+            }
+            
+            // Winner banner
+            const names = Object.keys(data.summary.wins);
+            if (data.winner) {
+                banner.classList.remove('hidden', 'tie-banner');
+                banner.innerHTML = `
+                    <h3>🏆 Winner: ${data.winner}</h3>
+                    <p>${data.summary.wins[names[0]]} vs ${data.summary.wins[names[1]]} (${data.summary.ties} ties)</p>
+                `;
+            } else {
+                banner.classList.remove('hidden');
+                banner.classList.add('tie-banner');
+                banner.innerHTML = `
+                    <h3>🤝 It's a Tie!</h3>
+                    <p>${data.summary.wins[names[0]]} vs ${data.summary.wins[names[1]]} (${data.summary.ties} ties)</p>
+                `;
+            }
+            
+            // Update column headers
+            document.getElementById('col-a').textContent = names[0];
+            document.getElementById('col-b').textContent = names[1];
+            
+            // Comparison table
+            const tbody = document.getElementById('compare-metrics');
+            tbody.innerHTML = data.per_metric.map(m => `
+                <tr>
+                    <td>${m.metric}</td>
+                    <td class="metric-value${m.winner === names[0] ? ' winner-cell' : ''}">${formatValue(m.values[names[0]])}</td>
+                    <td class="metric-value${m.winner === names[1] ? ' winner-cell' : ''}">${formatValue(m.values[names[1]])}</td>
+                    <td>${m.winner || 'Tie'}</td>
+                </tr>
+            `).join('');
+            
+            results.classList.add('show');
+        }
+        
+        function formatValue(val) {
+            if (val === null || val === undefined) return '-';
+            if (typeof val === 'number') {
+                if (Math.abs(val) < 0.001 || Math.abs(val) > 10000) {
+                    return val.toExponential(4);
+                }
+                return val.toFixed(4);
+            }
+            return val;
+        }
+    </script>
+</body>
+</html>

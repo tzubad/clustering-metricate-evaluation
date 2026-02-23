@@ -149,12 +149,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T048 [US5] Create Flask application in metricate/web/app.py
-- [ ] T049 [P] [US5] Create HTML template with file upload form in metricate/web/templates/index.html
-- [ ] T050 [US5] Implement POST /api/evaluate endpoint in metricate/web/app.py
-- [ ] T051 [US5] Implement POST /api/compare endpoint in metricate/web/app.py
-- [ ] T052 [US5] Add formatted table display in web UI template
-- [ ] T053 [US5] Add `metricate web` CLI command to start server in metricate/cli/main.py
+- [X] T048 [US5] Create Flask application in metricate/web/app.py
+- [X] T049 [P] [US5] Create HTML template with file upload form in metricate/web/templates/index.html
+- [X] T050 [US5] Implement POST /api/evaluate endpoint in metricate/web/app.py
+- [X] T051 [US5] Implement POST /api/compare endpoint in metricate/web/app.py
+- [X] T052 [US5] Add formatted table display in web UI template
+- [X] T053 [US5] Add `metricate web` CLI command to start server in metricate/cli/main.py
 
 **Checkpoint**: User Story 5 complete - web UI accessible via browser
 
