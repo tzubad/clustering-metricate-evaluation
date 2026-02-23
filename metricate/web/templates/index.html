@@ -385,8 +385,8 @@
         <div id="evaluate-tab" class="tab-content">
             <div class="card">
                 <form id="evaluate-form">
-                    <div class="upload-zone" id="evaluate-dropzone">
-                        <input type="file" id="evaluate-file" accept=".csv">
+                    <div class="upload-zone" id="evaluate-dropzone" onclick="document.getElementById('evaluate-file').click()">
+                        <input type="file" id="evaluate-file" accept=".csv" onchange="handleFileSelect(this, 'evaluate-dropzone', 'evaluate-btn')">
                         <div class="upload-icon">📁</div>
                         <div class="upload-text">Drop your clustering CSV here</div>
                         <div class="upload-hint">or click to browse</div>
@@ -404,7 +404,7 @@
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary btn-block" id="evaluate-btn" disabled>
+                    <button type="button" class="btn btn-primary btn-block" id="evaluate-btn" disabled onclick="submitEvaluate(event)">
                         <span class="btn-text">Evaluate Clustering</span>
                         <span class="spinner hidden"></span>
                     </button>
@@ -447,8 +447,8 @@
                     <div class="compare-files">
                         <div>
                             <h3 style="margin-bottom: 1rem;">Clustering A</h3>
-                            <div class="upload-zone" id="compare-dropzone1">
-                                <input type="file" id="compare-file1" accept=".csv">
+                            <div class="upload-zone" id="compare-dropzone1" onclick="document.getElementById('compare-file1').click()">
+                                <input type="file" id="compare-file1" accept=".csv" onchange="handleFileSelect(this, 'compare-dropzone1', 'compare-btn')">
                                 <div class="upload-icon">📁</div>
                                 <div class="upload-text">Drop first CSV</div>
                             </div>
@@ -459,8 +459,8 @@
                         </div>
                         <div>
                             <h3 style="margin-bottom: 1rem;">Clustering B</h3>
-                            <div class="upload-zone" id="compare-dropzone2">
-                                <input type="file" id="compare-file2" accept=".csv">
+                            <div class="upload-zone" id="compare-dropzone2" onclick="document.getElementById('compare-file2').click()">
+                                <input type="file" id="compare-file2" accept=".csv" onchange="handleFileSelect(this, 'compare-dropzone2', 'compare-btn')">
                                 <div class="upload-icon">📁</div>
                                 <div class="upload-text">Drop second CSV</div>
                             </div>
@@ -478,7 +478,7 @@
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary btn-block" id="compare-btn" disabled>
+                    <button type="button" class="btn btn-primary btn-block" id="compare-btn" disabled onclick="submitCompare(event)">
                         <span class="btn-text">Compare Clusterings</span>
                         <span class="spinner hidden"></span>
                     </button>
@@ -518,6 +518,22 @@
             document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
             document.querySelector('[data-tab="' + tabName + '"]').classList.add('active');
             document.getElementById(tabName + '-tab').classList.remove('hidden');
+        }
+        
+        // Handle file selection via inline onchange
+        function handleFileSelect(input, dropzoneId, btnId) {
+            if (input.files.length) {
+                const dropzone = document.getElementById(dropzoneId);
+                dropzone.classList.add('file-selected');
+                // Update the visual elements
+                const icon = dropzone.querySelector('.upload-icon');
+                const text = dropzone.querySelector('.upload-text');
+                const hint = dropzone.querySelector('.upload-hint');
+                if (icon) icon.textContent = '✅';
+                if (text) { text.textContent = input.files[0].name; text.classList.add('file-name'); }
+                if (hint) hint.textContent = (input.files[0].size / 1024 / 1024).toFixed(2) + ' MB';
+                updateButtonState(btnId);
+            }
         }
         
         // File upload handling
@@ -564,12 +580,28 @@
             }
         }
         
-        setupDropzone('evaluate-dropzone', 'evaluate-file', 'evaluate-btn');
-        setupDropzone('compare-dropzone1', 'compare-file1', 'compare-btn');
-        setupDropzone('compare-dropzone2', 'compare-file2', 'compare-btn');
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDropzone('evaluate-dropzone', 'evaluate-file', 'evaluate-btn');
+            setupDropzone('compare-dropzone1', 'compare-file1', 'compare-btn');
+            setupDropzone('compare-dropzone2', 'compare-file2', 'compare-btn');
+            
+            // Evaluate form submission
+            document.getElementById('evaluate-form').addEventListener('submit', submitEvaluate);
+            
+            // Compare form submission  
+            document.getElementById('compare-form').addEventListener('submit', submitCompare);
+        });
+        
+        // Also try to initialize immediately in case DOMContentLoaded already fired
+        if (document.readyState !== 'loading') {
+            setupDropzone('evaluate-dropzone', 'evaluate-file', 'evaluate-btn');
+            setupDropzone('compare-dropzone1', 'compare-file1', 'compare-btn');
+            setupDropzone('compare-dropzone2', 'compare-file2', 'compare-btn');
+        }
         
         // Evaluate form submission
-        document.getElementById('evaluate-form').addEventListener('submit', async e => {
+        async function submitEvaluate(e) {
             e.preventDefault();
             
             const btn = document.getElementById('evaluate-btn');
@@ -601,10 +633,10 @@
                 btnText.textContent = 'Evaluate Clustering';
                 spinner.classList.add('hidden');
             }
-        });
+        }
         
         // Compare form submission
-        document.getElementById('compare-form').addEventListener('submit', async e => {
+        async function submitCompare(e) {
             e.preventDefault();
             
             const btn = document.getElementById('compare-btn');
@@ -638,7 +670,7 @@
                 btnText.textContent = 'Compare Clusterings';
                 spinner.classList.add('hidden');
             }
-        });
+        }
         
         function showError(elementId, message) {
             const el = document.getElementById(elementId);
