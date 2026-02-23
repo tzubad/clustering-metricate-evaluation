@@ -73,14 +73,15 @@ def create_app(debug: bool = False) -> Flask:
             # Run evaluation
             result = metricate.evaluate(tmp_path, exclude=exclude, force_all=force_all)
 
-            # Convert to response format
+            # Convert to response format - use metadata dict for summary
+            meta = result.metadata
             response = {
                 "success": True,
                 "filename": file.filename,
                 "summary": {
-                    "n_rows": result.n_rows,
-                    "n_clusters": result.n_clusters,
-                    "n_dimensions": result.n_dimensions,
+                    "n_rows": meta.get("n_samples", 0),
+                    "n_clusters": meta.get("n_clusters", 0),
+                    "n_dimensions": meta.get("n_features", 0),
                     "metrics_computed": len([m for m in result.metrics if m.value is not None]),
                     "metrics_skipped": len([m for m in result.metrics if m.value is None]),
                 },
@@ -89,7 +90,7 @@ def create_app(debug: bool = False) -> Flask:
                         "name": m.metric,
                         "value": m.value,
                         "range": m.range,
-                        "direction": m.direction,
+                        "direction": "Higher is better" if m.direction == "higher" else "Lower is better",
                         "tier": m.tier,
                         "skipped": m.value is None,
                         "skip_reason": m.skip_reason,
@@ -154,34 +155,43 @@ def create_app(debug: bool = False) -> Flask:
             result = metricate.compare(
                 tmp_paths[0],
                 tmp_paths[1],
-                names=[name1, name2],
+                name_a=name1,
+                name_b=name2,
                 exclude=exclude,
             )
 
+            # Build per-metric comparison from evaluations and metric_winners
+            eval_a = result.evaluations[name1]
+            eval_b = result.evaluations[name2]
+            metrics_a = {m.metric: m.value for m in eval_a.metrics}
+            metrics_b = {m.metric: m.value for m in eval_b.metrics}
+
+            per_metric = []
+            for metric_name, winner in result.metric_winners.items():
+                per_metric.append({
+                    "metric": metric_name,
+                    "values": {name1: metrics_a.get(metric_name), name2: metrics_b.get(metric_name)},
+                    "winner": winner if winner != "tie" else None,
+                })
+
             # Convert to response format
+            ties = result.wins.get("tie", 0)
             response = {
                 "success": True,
-                "winner": result.winner,
+                "winner": result.winner if result.winner != "tie" else None,
                 "summary": {
-                    "wins": result.wins,
-                    "ties": result.ties,
-                    "total_metrics": result.wins[name1] + result.wins[name2] + result.ties,
+                    "wins": {name1: result.wins.get(name1, 0), name2: result.wins.get(name2, 0)},
+                    "ties": ties,
+                    "total_metrics": result.wins.get(name1, 0) + result.wins.get(name2, 0) + ties,
                 },
                 "evaluations": {
                     name: {
-                        "n_rows": eval_result.n_rows,
-                        "n_clusters": eval_result.n_clusters,
+                        "n_rows": eval_result.metadata.get("n_samples", 0),
+                        "n_clusters": eval_result.metadata.get("n_clusters", 0),
                     }
                     for name, eval_result in result.evaluations.items()
                 },
-                "per_metric": [
-                    {
-                        "metric": row["Metric"],
-                        "values": {name1: row.get(name1), name2: row.get(name2)},
-                        "winner": row.get("Winner"),
-                    }
-                    for row in result.comparison_rows
-                ],
+                "per_metric": per_metric,
                 "warnings": result.warnings,
             }
 
