@@ -58,7 +58,7 @@ def load_data(csv_path: Path) -> tuple[np.ndarray, np.ndarray]:
     embeddings = []
     labels = []
 
-    with open(csv_path, "r", encoding="utf-8") as f:
+    with open(csv_path, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for i, row in enumerate(reader):
             # Load reduced embedding
@@ -105,16 +105,14 @@ def evaluate_kmeans(
     # Filter out noise points for comparison metrics that require them
     # (but keep them for intrinsic metrics)
     non_noise_mask = original_labels != -1
-    non_noise_embeddings = embeddings[non_noise_mask]
+    embeddings[non_noise_mask]
     non_noise_labels = original_labels[non_noise_mask]
 
     logger.info(f"Will evaluate {len(k_values)} different k values")
-    logger.info(
-        f"Non-noise samples for comparison metrics: {len(non_noise_labels)}"
-    )
+    logger.info(f"Non-noise samples for comparison metrics: {len(non_noise_labels)}")
 
     for i, k in enumerate(k_values):
-        logger.info(f"\nEvaluating k={k} ({i+1}/{len(k_values)})...")
+        logger.info(f"\nEvaluating k={k} ({i + 1}/{len(k_values)})...")
 
         # Run KMeans on all data
         kmeans = KMeans(n_clusters=k, random_state=random_state, n_init=10)
@@ -211,12 +209,8 @@ def print_summary(results: list[dict]):
     best_calinski = max(results, key=lambda x: x["calinski_harabasz"])
 
     logger.info("\nComparison Metrics (vs original clustering):")
-    logger.info(
-        f"  Best ARI: k={best_ari['k']}, score={best_ari['ari']:.4f}"
-    )
-    logger.info(
-        f"  Best NMI: k={best_nmi['k']}, score={best_nmi['nmi']:.4f}"
-    )
+    logger.info(f"  Best ARI: k={best_ari['k']}, score={best_ari['ari']:.4f}")
+    logger.info(f"  Best NMI: k={best_nmi['k']}, score={best_nmi['nmi']:.4f}")
     logger.info(
         f"  Best V-measure: k={best_v_measure['k']}, score={best_v_measure['v_measure']:.4f}"
     )
@@ -350,9 +344,7 @@ Metrics Explained:
         embeddings, original_labels = load_data(input_path)
 
         # Run evaluation
-        results = evaluate_kmeans(
-            embeddings, original_labels, k_values, args.random_state
-        )
+        results = evaluate_kmeans(embeddings, original_labels, k_values, args.random_state)
 
         # Save results
         save_results(results, output_path)
