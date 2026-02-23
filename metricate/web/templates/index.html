@@ -712,7 +712,9 @@
             setupDropzone('compare-dropzone2', 'compare-file2', 'compare-btn');
         }
         
-        // Progress bar animation
+        // Progress bar animation - using global to ensure cleanup
+        var progressIntervals = {};
+        
         function showProgress(prefix, steps) {
             const container = document.getElementById(prefix + '-progress');
             const bar = document.getElementById(prefix + '-progress-bar');
@@ -720,7 +722,14 @@
             const percent = document.getElementById(prefix + '-progress-percent');
             const stepsEl = document.getElementById(prefix + '-progress-steps');
             
+            // Clear any existing interval for this prefix
+            if (progressIntervals[prefix]) {
+                clearInterval(progressIntervals[prefix]);
+                progressIntervals[prefix] = null;
+            }
+            
             container.classList.add('show');
+            container.style.display = 'block';
             let currentStep = 0;
             const stepEls = stepsEl.querySelectorAll('.progress-step');
             
@@ -743,7 +752,7 @@
             }
             
             // Simulate progress through steps
-            const interval = setInterval(() => {
+            progressIntervals[prefix] = setInterval(() => {
                 if (currentStep < steps.length - 1) {
                     currentStep++;
                     const pct = Math.min(90, Math.round((currentStep / steps.length) * 100));
@@ -751,32 +760,19 @@
                 }
             }, 800);
             
-            return {
-                complete: function() {
-                    clearInterval(interval);
-                    // Mark all steps as done
-                    percent.textContent = '100%';
-                    bar.style.width = '100%';
-                    text.textContent = 'Complete!';
-                    stepEls.forEach(el => {
-                        el.classList.remove('active');
-                        el.classList.add('done');
-                        const txt = el.textContent.replace(/^[⏳○✓]\s*/, '');
-                        el.innerHTML = '✓ ' + txt;
-                    });
-                    // Hide after a short delay
-                    setTimeout(function() {
-                        container.classList.remove('show');
-                    }, 800);
-                },
-                error: function() {
-                    clearInterval(interval);
-                    container.classList.remove('show');
-                },
-                hide: function() {
-                    clearInterval(interval);
-                    container.classList.remove('show');
+            function hideProgress() {
+                if (progressIntervals[prefix]) {
+                    clearInterval(progressIntervals[prefix]);
+                    progressIntervals[prefix] = null;
                 }
+                container.classList.remove('show');
+                container.style.display = 'none';
+            }
+            
+            return {
+                complete: hideProgress,
+                error: hideProgress,
+                hide: hideProgress
             };
         }
         
@@ -812,9 +808,6 @@
                 const response = await fetch('/api/evaluate', { method: 'POST', body: formData });
                 const data = await response.json();
                 
-                // Hide progress first
-                progress.hide();
-                
                 if (data.error) {
                     showError('evaluate-error', data.error);
                 } else {
@@ -826,10 +819,11 @@
                     }
                 }
             } catch (err) {
-                progress.hide();
                 console.error('Request error:', err);
                 showError('evaluate-error', 'Request failed: ' + err.message);
             } finally {
+                // Always hide progress and reset button
+                progress.hide();
                 btn.disabled = false;
                 btnText.textContent = 'Evaluate Clustering';
             }
@@ -869,9 +863,6 @@
                 const response = await fetch('/api/compare', { method: 'POST', body: formData });
                 const data = await response.json();
                 
-                // Hide progress first
-                progress.hide();
-                
                 if (data.error) {
                     showError('compare-error', data.error);
                 } else {
@@ -883,10 +874,11 @@
                     }
                 }
             } catch (err) {
-                progress.hide();
                 console.error('Request error:', err);
                 showError('compare-error', 'Request failed: ' + err.message);
             } finally {
+                // Always hide progress and reset button
+                progress.hide();
                 btn.disabled = false;
                 btnText.textContent = 'Compare Clusterings';
             }
