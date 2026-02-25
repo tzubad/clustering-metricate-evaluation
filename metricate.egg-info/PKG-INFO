@@ -1,3 +1,38 @@
+Metadata-Version: 2.4
+Name: metricate
+Version: 0.1.0
+Summary: A clustering evaluation toolkit with 34 quality metrics
+Author: Metricate Team
+License: MIT
+Project-URL: Homepage, https://github.com/metricate/metricate
+Project-URL: Documentation, https://metricate.readthedocs.io
+Project-URL: Repository, https://github.com/metricate/metricate
+Keywords: clustering,metrics,evaluation,machine-learning,data-science
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Science/Research
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: pandas>=2.0
+Requires-Dist: numpy>=1.24
+Requires-Dist: scikit-learn>=1.3
+Requires-Dist: plotly>=5.0
+Requires-Dist: click>=8.0
+Requires-Dist: scipy>=1.10
+Provides-Extra: web
+Requires-Dist: flask>=2.0; extra == "web"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0; extra == "dev"
+Requires-Dist: black>=23.0; extra == "dev"
+Requires-Dist: ruff>=0.1.0; extra == "dev"
+
 # Metricate
 
 A comprehensive clustering evaluation toolkit that calculates 34 quality metrics, compares clusterings, and generates degraded datasets for testing metric robustness.
