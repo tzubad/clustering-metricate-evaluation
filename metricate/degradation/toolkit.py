@@ -358,7 +358,7 @@ def degrade(
         try:
             from metricate.degradation.visualize import generate_index, generate_visualizations
 
-            visualizations = generate_visualizations(degradations, output_path)
+            visualizations = generate_visualizations(degradations, output_path, original_csv_path=csv_path)
             index_html_path = generate_index(degradations, output_path)
 
         except ImportError:

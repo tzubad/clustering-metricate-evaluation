@@ -246,11 +246,134 @@ def list_degradations() -> dict[str, list[str]]:
     return dict(DEGRADATION_TYPES)
 
 
+def generate_training_data(
+    csv_path: str | Path,
+    output_dir: str | Path,
+    *,
+    types: list[str] | None = None,
+    levels: list[str] | None = None,
+    exclude: list[str] | None = None,
+    force_all: bool = False,
+    topic: str | None = None,
+    random_seed: int = 42,
+    label_col: str | None = None,
+    embedding_cols: list[str] | None = None,
+):
+    """
+    Generate a training dataset from a single clustering CSV.
+
+    Creates degraded versions of the input clustering at various intensity
+    levels, calculates metrics for both original and degraded versions,
+    and returns a structured dataset for ML training.
+
+    Args:
+        csv_path: Path to input clustering CSV.
+        output_dir: Directory for degraded CSVs and outputs.
+        types: Degradation types to apply (None = all 19).
+        levels: Degradation levels (None = ["5pct", "10pct", "25pct", "50pct"]).
+        exclude: Metrics to exclude from calculation.
+        force_all: Compute O(n²) metrics on large datasets.
+        topic: Manual topic assignment (None = extract from filename).
+        random_seed: Seed for reproducibility.
+        label_col: Cluster label column (auto-detected if None).
+        embedding_cols: Embedding columns (auto-detected if None).
+
+    Returns:
+        TrainingDataResult: Object containing:
+            - records: List of record dicts (one per clustering version)
+            - to_dataframe(): Convert to pandas DataFrame
+            - to_csv(path): Export to CSV file
+            - to_parquet(path): Export to Parquet file
+            - summary(): Human-readable summary
+
+    Example:
+        >>> result = metricate.generate_training_data("clustering.csv", "./output/")
+        >>> df = result.to_dataframe()
+        >>> result.to_csv("training_dataset.csv")
+    """
+    from metricate.training.generator import (
+        generate_training_data as _generate_training_data,
+    )
+
+    return _generate_training_data(
+        csv_path,
+        output_dir,
+        types=types,
+        levels=levels,
+        exclude=exclude,
+        force_all=force_all,
+        topic=topic,
+        random_seed=random_seed,
+        label_col=label_col,
+        embedding_cols=embedding_cols,
+    )
+
+
+def generate_training_data_batch(
+    input_dir: str | Path,
+    output_dir: str | Path,
+    *,
+    topic_mapping: dict[str, str] | None = None,
+    types: list[str] | None = None,
+    levels: list[str] | None = None,
+    exclude: list[str] | None = None,
+    force_all: bool = False,
+    random_seed: int = 42,
+    label_col: str | None = None,
+    embedding_cols: list[str] | None = None,
+):
+    """
+    Generate training data from all CSVs in a directory.
+
+    Processes each clustering file in the input directory, generating
+    degraded versions and calculating metrics, then combines all results
+    into a single training dataset.
+
+    Args:
+        input_dir: Directory containing clustering CSVs.
+        output_dir: Directory for degraded CSVs and outputs.
+        topic_mapping: Dict mapping filename to topic.
+        types: Degradation types to apply (None = all 19).
+        levels: Degradation levels (None = ["5pct", "10pct", "25pct", "50pct"]).
+        exclude: Metrics to exclude from calculation.
+        force_all: Compute O(n²) metrics on large datasets.
+        random_seed: Seed for reproducibility.
+        label_col: Cluster label column (auto-detected if None).
+        embedding_cols: Embedding columns (auto-detected if None).
+
+    Returns:
+        TrainingDataResult: Combined results from all files.
+
+    Example:
+        >>> result = metricate.generate_training_data_batch("./clusterings/", "./output/")
+        >>> print(result.summary())
+        >>> result.to_csv("full_training_dataset.csv")
+    """
+    from metricate.training.generator import (
+        generate_training_data_batch as _generate_training_data_batch,
+    )
+
+    return _generate_training_data_batch(
+        input_dir,
+        output_dir,
+        topic_mapping=topic_mapping,
+        types=types,
+        levels=levels,
+        exclude=exclude,
+        force_all=force_all,
+        random_seed=random_seed,
+        label_col=label_col,
+        embedding_cols=embedding_cols,
+    )
+
+
 __all__ = [
     "evaluate",
     "compare",
     "degrade",
     "list_metrics",
     "list_degradations",
+    "generate_training_data",
+    "generate_training_data_batch",
     "__version__",
 ]

@@ -24,6 +24,10 @@ metricate/degradation/visualize.py
 metricate/output/__init__.py
 metricate/output/formatters.py
 metricate/output/report.py
+metricate/training/__init__.py
+metricate/training/generator.py
+metricate/training/normalize.py
+metricate/training/result.py
 metricate/web/__init__.py
 metricate/web/app.py
 tests/test_evaluator.py

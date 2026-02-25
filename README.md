@@ -122,6 +122,41 @@ result = metricate.degrade(
 )
 ```
 
+### Visualize Degradations
+
+When generating degraded datasets, you can create interactive HTML visualizations showing the effect of each degradation:
+
+```python
+import metricate
+
+# Generate degradations with visualizations
+result = metricate.degrade(
+    "clustering.csv",
+    output_dir="./output/",
+    visualize=True  # Enable visualization generation
+)
+
+# Check generated visualization paths
+print(f"Index page: {result.index_html_path}")
+print(f"Visualizations: {result.visualizations}")
+```
+
+**Generated files:**
+- `index.html` - Dashboard linking to all visualizations
+- `<degradation_type>.html` - Interactive Plotly scatter plot for each type
+
+**Viewing visualizations:**
+```bash
+# Option 1: Open directly in browser
+open ./output/index.html
+
+# Option 2: Serve with Python HTTP server
+cd ./output && python -m http.server 8000
+# Then visit http://localhost:8000
+```
+
+Each visualization shows a 2D projection (via PCA if needed) of the embeddings colored by cluster assignment, making it easy to see how each degradation affects the clustering structure.
+
 ### List Available Options
 
 ```python
@@ -174,6 +209,50 @@ metricate degrade clustering.csv ./output/ --no-visualize
 # List available options
 metricate list metrics
 metricate list degradations
+
+# Start the web UI
+metricate web --port 5000
+```
+
+## Web UI
+
+Metricate includes a browser-based interface for evaluating and comparing clusterings without writing code.
+
+### Starting the Web Server
+
+```bash
+# If installed globally or venv is activated:
+metricate web
+
+# If using a virtual environment (not activated):
+.venv/bin/metricate web
+
+# Use a custom port
+metricate web --port 8080
+
+# Run in debug mode
+metricate web --debug
+```
+
+Then open `http://localhost:5000` in your browser (or the port you specified).
+
+### Features
+
+- **Upload CSV files** directly through the browser
+- **Evaluate** a single clustering and view all 34 metrics
+- **Compare** two clusterings side-by-side with winner determination
+- **Formatted results** displayed in easy-to-read tables
+- **Export** results as JSON or CSV
+
+### Python API
+
+You can also start the web server programmatically:
+
+```python
+import metricate
+
+# Start the web server
+metricate.web(port=5000, debug=False)
 ```
 
 ## Input Format

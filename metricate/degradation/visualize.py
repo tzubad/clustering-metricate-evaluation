@@ -27,16 +27,19 @@ if TYPE_CHECKING:
 def generate_visualizations(
     degradations: list["DegradationEntry"],
     output_dir: Path,
+    original_csv_path: str | None = None,
 ) -> list[str]:
     """
-    Generate HTML visualization for each degradation.
+    Generate HTML visualization for each degradation type.
 
-    Creates a 2D scatter plot showing the clustering after degradation,
-    colored by cluster label.
+    Creates a 2D scatter plot with a dropdown to select severity level,
+    showing the clustering after degradation colored by cluster label.
+    Includes the baseline (original) data in the dropdown.
 
     Args:
         degradations: List of DegradationEntry objects with file paths
         output_dir: Directory to write HTML files
+        original_csv_path: Path to the original CSV for baseline comparison
 
     Returns:
         List of generated HTML file paths
@@ -47,78 +50,320 @@ def generate_visualizations(
     visualizations = []
     output_path = Path(output_dir)
 
-    for entry in degradations:
+    # Load baseline data if provided
+    baseline_data = None
+    if original_csv_path:
         try:
-            # Load the degraded data
-            df = pd.read_csv(entry.filepath)
-
-            # Find embedding columns
-            embedding_col = _find_embedding_col(df)
-            label_col = _find_label_col(df)
-
-            if embedding_col is None or label_col is None:
-                continue
-
-            # Parse embeddings if needed
-            if df[embedding_col].dtype == object:
-                embeddings = _parse_embeddings(df[embedding_col])
-            else:
-                embeddings = df[embedding_col].values
-
-            # Reduce to 2D if needed
-            if isinstance(embeddings, np.ndarray) and embeddings.ndim == 2:
-                if embeddings.shape[1] > 2:
-                    from sklearn.decomposition import PCA
-
-                    pca = PCA(n_components=2, random_state=42)
-                    coords_2d = pca.fit_transform(embeddings)
+            df_orig = pd.read_csv(original_csv_path)
+            embedding_col = _find_embedding_col(df_orig)
+            label_col = _find_label_col(df_orig)
+            if embedding_col and label_col:
+                if pd.api.types.is_string_dtype(df_orig[embedding_col]) or df_orig[embedding_col].dtype == object:
+                    embeddings = _parse_embeddings(df_orig[embedding_col])
                 else:
-                    coords_2d = embeddings
-            else:
-                # Skip if we can't process
+                    embeddings = df_orig[embedding_col].values
+
+                if isinstance(embeddings, np.ndarray) and embeddings.ndim == 2:
+                    if embeddings.shape[1] > 2:
+                        from sklearn.decomposition import PCA
+                        pca = PCA(n_components=2, random_state=42)
+                        baseline_coords = pca.fit_transform(embeddings)
+                    else:
+                        baseline_coords = embeddings
+
+                    baseline_data = {
+                        "coords": baseline_coords,
+                        "labels": df_orig[label_col].astype(str),
+                        "n_rows": len(df_orig),
+                    }
+        except Exception:
+            pass
+
+    # Group degradations by type
+    by_type: dict[str, list] = {}
+    for entry in degradations:
+        if entry.type not in by_type:
+            by_type[entry.type] = []
+        by_type[entry.type].append(entry)
+
+    # Sort levels for consistent ordering
+    level_order = ["5pct", "10pct", "25pct", "50pct", "75pct", "100pct"]
+
+    for deg_type, entries in by_type.items():
+        try:
+            # Sort entries by level
+            sorted_entries = sorted(
+                entries,
+                key=lambda e: level_order.index(e.level) if e.level in level_order else 999
+            )
+
+            # Process all levels and collect data
+            level_data = []
+            all_labels = set()
+
+            # Add baseline labels first
+            if baseline_data:
+                all_labels.update(baseline_data["labels"].unique())
+
+            for entry in sorted_entries:
+                df = pd.read_csv(entry.filepath)
+
+                embedding_col = _find_embedding_col(df)
+                label_col = _find_label_col(df)
+
+                if embedding_col is None or label_col is None:
+                    continue
+
+                # Parse embeddings
+                if pd.api.types.is_string_dtype(df[embedding_col]) or df[embedding_col].dtype == object:
+                    embeddings = _parse_embeddings(df[embedding_col])
+                else:
+                    embeddings = df[embedding_col].values
+
+                # Reduce to 2D if needed
+                if isinstance(embeddings, np.ndarray) and embeddings.ndim == 2:
+                    if embeddings.shape[1] > 2:
+                        from sklearn.decomposition import PCA
+                        pca = PCA(n_components=2, random_state=42)
+                        coords_2d = pca.fit_transform(embeddings)
+                    else:
+                        coords_2d = embeddings
+                else:
+                    continue
+
+                labels = df[label_col].astype(str)
+                all_labels.update(labels.unique())
+
+                level_data.append({
+                    "entry": entry,
+                    "coords": coords_2d,
+                    "labels": labels,
+                })
+
+            if not level_data:
                 continue
 
-            # Create visualization
-            labels = df[label_col].astype(str)
+            # Create consistent color mapping across all levels
+            unique_labels = sorted(all_labels, key=lambda x: (x.lstrip('-').isdigit(), int(x) if x.lstrip('-').isdigit() else 0, x))
+            colors = px.colors.qualitative.Plotly + px.colors.qualitative.D3 + px.colors.qualitative.Set3
+            color_map = {label: colors[i % len(colors)] for i, label in enumerate(unique_labels)}
 
-            fig = px.scatter(
-                x=coords_2d[:, 0],
-                y=coords_2d[:, 1],
-                color=labels,
-                title=f"{entry.type} @ {entry.level}",
-                labels={"x": "Dimension 1", "y": "Dimension 2", "color": "Cluster"},
-            )
+            # Create figure with all traces
+            fig = go.Figure()
 
+            # Track traces per level for visibility toggling
+            traces_per_level = []
+            trace_idx = 0
+
+            # Add baseline first if available
+            if baseline_data:
+                level_trace_start = trace_idx
+                for label in unique_labels:
+                    mask = baseline_data["labels"] == label
+                    if not mask.any():
+                        continue
+
+                    fig.add_trace(go.Scatter(
+                        x=baseline_data["coords"][mask, 0],
+                        y=baseline_data["coords"][mask, 1],
+                        mode="markers",
+                        name=f"Cluster {label}",
+                        marker={"color": color_map[label], "size": 6},
+                        legendgroup=label,
+                        showlegend=True,
+                        visible=True,
+                        hovertemplate=f"Cluster: {label}<br>x: %{{x:.3f}}<br>y: %{{y:.3f}}<extra></extra>",
+                    ))
+                    trace_idx += 1
+
+                traces_per_level.append({
+                    "level": "baseline",
+                    "label": f"Baseline ({baseline_data['n_rows']:,} pts)",
+                    "description": "Original clustering (no degradation)",
+                    "n_rows": baseline_data["n_rows"],
+                    "start": level_trace_start,
+                    "end": trace_idx,
+                })
+
+            # Add degraded levels
+            for i, data in enumerate(level_data):
+                entry = data["entry"]
+                coords = data["coords"]
+                labels = data["labels"]
+                is_first = (i == 0 and baseline_data is None)
+
+                level_trace_start = trace_idx
+
+                # Add one trace per cluster for this level
+                for label in unique_labels:
+                    mask = labels == label
+                    if not mask.any():
+                        continue
+
+                    fig.add_trace(go.Scatter(
+                        x=coords[mask, 0],
+                        y=coords[mask, 1],
+                        mode="markers",
+                        name=f"Cluster {label}",
+                        marker={"color": color_map[label], "size": 6},
+                        legendgroup=label,
+                        showlegend=is_first,
+                        visible=False,  # All degraded levels start hidden (baseline is shown)
+                        hovertemplate=f"Cluster: {label}<br>x: %{{x:.3f}}<br>y: %{{y:.3f}}<extra></extra>",
+                    ))
+                    trace_idx += 1
+
+                # Format the dropdown label based on degradation type
+                dropdown_label = _format_dropdown_label(entry)
+
+                traces_per_level.append({
+                    "level": entry.level,
+                    "label": dropdown_label,
+                    "description": entry.change_description,
+                    "n_rows": entry.n_rows,
+                    "start": level_trace_start,
+                    "end": trace_idx,
+                })
+
+            # Create dropdown buttons
+            buttons = []
+            total_traces = trace_idx
+            type_title = _format_type_name(deg_type)
+
+            for level_info in traces_per_level:
+                # Create visibility array: True for this level's traces, False for others
+                visibility = [False] * total_traces
+                for idx in range(level_info["start"], level_info["end"]):
+                    visibility[idx] = True
+
+                buttons.append({
+                    "label": level_info["label"],
+                    "method": "update",
+                    "args": [
+                        {"visible": visibility},
+                        {"annotations": [
+                            {
+                                "text": "Severity:",
+                                "x": 0.0,
+                                "xref": "paper",
+                                "y": 1.18,
+                                "yref": "paper",
+                                "showarrow": False,
+                                "font": {"size": 12, "color": "#666"},
+                            },
+                            {
+                                "text": level_info["description"],
+                                "x": 0.5,
+                                "xref": "paper",
+                                "y": -0.08,
+                                "yref": "paper",
+                                "showarrow": False,
+                                "font": {"size": 11, "color": "#888"},
+                            }
+                        ]}
+                    ]
+                })
+
+            # Initial description
+            initial_desc = traces_per_level[0]["description"] if traces_per_level else ""
+
+            # Update layout with dropdown
             fig.update_layout(
+                title={
+                    "text": type_title,
+                    "x": 0.5,
+                    "xanchor": "center",
+                    "font": {"size": 18},
+                },
                 template="plotly_white",
-                title_x=0.5,
-                width=800,
-                height=600,
-                legend={"yanchor": "top", "y": 0.99, "xanchor": "right", "x": 0.99},
-            )
-
-            # Add annotation with stats
-            fig.add_annotation(
-                text=f"Points: {entry.n_rows} | {entry.change_description}",
-                xref="paper",
-                yref="paper",
-                x=0.5,
-                y=-0.1,
-                showarrow=False,
-                font={"size": 10, "color": "gray"},
+                width=900,
+                height=700,
+                xaxis_title="Dimension 1",
+                yaxis_title="Dimension 2",
+                legend={
+                    "yanchor": "top",
+                    "y": 0.99,
+                    "xanchor": "right",
+                    "x": 0.99,
+                    "bgcolor": "rgba(255,255,255,0.8)",
+                },
+                updatemenus=[
+                    {
+                        "active": 0,
+                        "buttons": buttons,
+                        "direction": "down",
+                        "showactive": True,
+                        "x": 0.0,
+                        "xanchor": "left",
+                        "y": 1.15,
+                        "yanchor": "top",
+                        "bgcolor": "white",
+                        "bordercolor": "#ccc",
+                        "font": {"size": 12},
+                    }
+                ],
+                annotations=[
+                    {
+                        "text": "Severity:",
+                        "x": 0.0,
+                        "xref": "paper",
+                        "y": 1.18,
+                        "yref": "paper",
+                        "showarrow": False,
+                        "font": {"size": 12, "color": "#666"},
+                    },
+                    {
+                        "text": initial_desc,
+                        "x": 0.5,
+                        "xref": "paper",
+                        "y": -0.08,
+                        "yref": "paper",
+                        "showarrow": False,
+                        "font": {"size": 11, "color": "#888"},
+                    }
+                ],
+                margin={"b": 80},  # Extra bottom margin for description
             )
 
             # Save
-            viz_filename = f"{entry.type}.html"
+            viz_filename = f"{deg_type}.html"
             viz_path = output_path / viz_filename
             fig.write_html(str(viz_path), include_plotlyjs="cdn")
             visualizations.append(str(viz_path))
 
         except Exception:
-            # Skip files that can't be visualized
+            # Skip types that can't be visualized
             continue
 
     return visualizations
+
+
+def _format_dropdown_label(entry: "DegradationEntry") -> str:
+    """Format dropdown label based on degradation type."""
+    deg_type = entry.type
+    level = entry.level
+    n_rows = entry.n_rows
+
+    # For percentage-based degradations, show percentage
+    if deg_type in ["label_swap_random", "label_swap_neighboring", "label_swap_distant",
+                    "random_removal", "core_removal", "boundary_reassignment",
+                    "embedding_perturbation", "centroid_displacement", "noise_injection"]:
+        pct = level.replace("pct", "%")
+        return f"{pct} ({n_rows:,} pts)"
+
+    # For cluster operations (merge, split, remove), show the description from level
+    elif deg_type.startswith("merge_") or deg_type.startswith("split_") or deg_type.startswith("remove_"):
+        # Extract the number from description or use level-based estimate
+        level_num = {"5pct": 1, "10pct": 1, "25pct": 2, "50pct": 5}.get(level, 1)
+        if deg_type.startswith("merge_"):
+            return f"{level_num} merge{'s' if level_num > 1 else ''} ({n_rows:,} pts)"
+        elif deg_type.startswith("split_"):
+            return f"{level_num} split{'s' if level_num > 1 else ''} ({n_rows:,} pts)"
+        else:  # remove_
+            return f"{level_num} removed ({n_rows:,} pts)"
+
+    # Default fallback
+    return f"{level} ({n_rows:,} pts)"
 
 
 def generate_index(
